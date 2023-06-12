@@ -66,7 +66,6 @@ int main(int argc, char const *argv[]) {
     // Include client address information to the datagram
     struct sockaddr_in client_address;
     client_address.sin_family = AF_INET;
-    client_address.sin_addr.s_addr = inet_addr("127.0.0.1");
     client_address.sin_port = htons(client_port);
 
     // Create enter message fromm VISITOR_MESSAGE and ENTER_REQUEST

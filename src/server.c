@@ -34,6 +34,7 @@ void handleSigInt(int sig) {
 }
 
 void galleryInfo(char *bufferString) {
+    memset(bufferString, 0, sizeof(bufferString));
     char buffer[1024] = {0};
     sprintf(buffer, "Gallery info:\n");
     strcat(bufferString, buffer);
@@ -43,6 +44,7 @@ void galleryInfo(char *bufferString) {
         sprintf(buffer, "Picture %d: %d visitors\n", i + 1, gallery[i]);
         strcat(bufferString, buffer);
     }
+    strcpy(bufferString, buffer);
 }
 
 int main(int argc, char *argv[]) {

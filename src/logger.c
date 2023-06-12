@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "common.h"
 #include "tcpIO.h"
@@ -27,69 +27,63 @@ void handleSigInt(int sig) {
 int main(int argc, char const *argv[]) {
     (void)signal(SIGINT, handleSigInt);
 
-    int sock = 0, valread, port;
-    struct sockaddr_in serv_addr;
+    int logger_socket = 0, valread, server_port, logger_port;
+    struct sockaddr_in serv_address;
     char *ip_address;
 
     // Get ip address and port from the command line arguments
-    if (argc == 3) {
+    if (argc == 4) {
         ip_address = (char *)argv[1];
-        port = atoi(argv[2]);
+        server_port = atoi(argv[2]);
+        logger_port = atoi(argv[3]);
     } else {
-        printf("Usage: ./client <ip_address> <port>\n");
+        printf("Usage: ./logger <ip_address> <server_port> <client_port>\n");
         return -1;
     }
 
-    // Create socket file descriptor
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("Socket creation error");
-        return -1;
+    if ((logger_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        printError("Socket creation failed");
     }
 
-    memset(&serv_addr, '0', sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
+    serv_address.sin_family = AF_INET;
+    serv_address.sin_addr.s_addr = inet_addr(ip_address);
+    serv_address.sin_port = htons(server_port);
 
-    // Convert IPv4 and IPv6 addresses from text to binary form
-    if (inet_pton(AF_INET, ip_address, &serv_addr.sin_addr) <= 0) {
-        perror("Invalid address/ Address not supported");
-        return -1;
-    }
+    // Include client address information to the datagram
+    struct sockaddr_in client_address;
+    client_address.sin_family = AF_INET;
+    client_address.sin_port = htons(logger_port);
 
-    // Connect to the server
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("Connection failed");
-        return -1;
-    }
-
-    sleep(1);
-
-    SendMessage(sock, LOGGER_MESSAGE);
-
-    // Read the message from the server to enter the gallery
-    ReceiveMessage(sock, buffer);
-
-    if (buffer == WELCOME_MESSAGE) {
-        printf("Entering the gallery.\n");
-    }
+    // Create enter message fromm VISITOR_MESSAGE and ENTER_REQUEST
+    char request_message[MAX_RESPONSE_SIZE] = {0};
+    strcpy(request_message, LOGGER_MESSAGE);
 
     while (requesting) {
-        // Send message with log request
-        SendMessage(sock, "Log request");
+        strcpy(buffer, request_message);
 
-        // Read the message from the server
-        ReceiveMessage(sock, buffer);
+        // Send request message to the server
+        if (sendto(logger_socket, (const char *)buffer, strlen(buffer), 0,
+                   (const struct sockaddr *)&serv_address, sizeof(serv_address)) < 0) {
+            printError("Sendto failed");
+        }
 
-        // Clear console
-        printf("\033[2J\033[1;1H");
+        // Receive response from the server
+        socklen_t serv_address_len = sizeof(serv_address);
+        if ((valread = recvfrom(logger_socket, (char *)buffer, MAX_RESPONSE_SIZE, 0,
+                                (struct sockaddr *)&serv_address, &serv_address_len)) < 0) {
+            printError("Recvfrom failed");
+        }
 
-        printf("[LOG]\n%s\n", buffer);
+        buffer[valread] = '\0';
+        // Print response
+        printf("%s\n", buffer);
+
+        // Clear buffer
+        memset(buffer, 0, MAX_RESPONSE_SIZE);
 
         sleep(5);
     }
 
-    // Send the message to leave the gallery
-    SendMessage(sock, EXIT_MESSAGE);
     printf("Exiting gallery.\n");
 
     return 0;
