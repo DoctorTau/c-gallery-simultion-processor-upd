@@ -67,6 +67,8 @@ int main(int argc, char const *argv[]) {
             printError("Sendto failed");
         }
 
+        memset(buffer, 0, MAX_RESPONSE_SIZE);
+
         // Receive response from the server
         socklen_t serv_address_len = sizeof(serv_address);
         if ((valread = recvfrom(logger_socket, (char *)buffer, MAX_RESPONSE_SIZE, 0,
@@ -74,8 +76,6 @@ int main(int argc, char const *argv[]) {
             printError("Recvfrom failed");
         }
 
-        buffer[valread] = '\0';
-        // Print response
         printf("%s\n", buffer);
 
         // Clear buffer

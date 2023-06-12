@@ -37,14 +37,13 @@ void galleryInfo(char *bufferString) {
     memset(bufferString, 0, sizeof(bufferString));
     char buffer[1024] = {0};
     sprintf(buffer, "Gallery info:\n");
-    strcat(bufferString, buffer);
+    strcpy(bufferString, buffer);
     sprintf(buffer, "Visitors: %d\n", visitors);
     strcat(bufferString, buffer);
     for (int i = 0; i < NUMBER_OF_PICTURES; i++) {
         sprintf(buffer, "Picture %d: %d visitors\n", i + 1, gallery[i]);
         strcat(bufferString, buffer);
     }
-    strcpy(bufferString, buffer);
 }
 
 int main(int argc, char *argv[]) {
@@ -103,7 +102,8 @@ int main(int argc, char *argv[]) {
         if (strcmp(messageType, LOGGER_MESSAGE) == 0) {
             printf("Received message from logger\n");
             galleryInfo(writer_buffer);
-            if (sendto(server_fd, writer_buffer, strlen(reader_buffer), 0,
+            printf("%s", writer_buffer);
+            if (sendto(server_fd, writer_buffer, strlen(writer_buffer), 0,
                        (struct sockaddr *)&client_address, client_address_len) < 0) {
                 perror("Error sending message to client");
             }
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
             }
-            if (sendto(server_fd, writer_buffer, strlen(reader_buffer), 0,
+            if (sendto(server_fd, writer_buffer, strlen(writer_buffer), 0,
                        (struct sockaddr *)&client_address, client_address_len) < 0) {
                 perror("Error sending message to client");
             }
