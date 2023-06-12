@@ -22,5 +22,11 @@ void printError(const char *msg) {
 
 #define VISITOR_MESSAGE "Visitor"
 #define LOGGER_MESSAGE "Logger"
+#define ENTER_REQUEST "Enter"
+#define EXIT_REQUEST "Exit"
+#define REJECT_MESSAGE "Rejected"
+
+#define ENTER_RESPONSE "Entered"
+#define EXIT_RESPONSE "Exited"
 
 #endif

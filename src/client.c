@@ -13,18 +13,31 @@
 #define PORT 5678
 
 char buffer[MAX_RESPONSE_SIZE] = {0};
+bool pictures[NUMBER_OF_PICTURES] = {false};
 
 int getRandomNumber(int min, int max) {
     return rand() % (max + 1 - min) + min;
 }
 
-bool isAllTrue(bool array[]) {
+bool isAllPicturesVisited() {
     for (int i = 0; i < NUMBER_OF_PICTURES; i++) {
-        if (!array[i]) {
+        if (!pictures[i]) {
             return false;
         }
     }
     return true;
+}
+
+int getNextRandomPicture() {
+    if (isAllPicturesVisited()) {
+        return -1;
+    }
+    int picture = getRandomNumber(0, NUMBER_OF_PICTURES - 1);
+    while (pictures[picture]) {
+        picture = getRandomNumber(0, NUMBER_OF_PICTURES - 1);
+    }
+    pictures[picture] = true;
+    return picture;
 }
 
 int main(int argc, char const *argv[]) {
@@ -56,24 +69,111 @@ int main(int argc, char const *argv[]) {
     client_address.sin_addr.s_addr = inet_addr("127.0.0.1");
     client_address.sin_port = htons(client_port);
 
-    // Write hello string to buffer
-    strcpy(buffer, "Hello from client!");
+    // Create enter message fromm VISITOR_MESSAGE and ENTER_REQUEST
+    char enterMessage[MAX_RESPONSE_SIZE] = {0};
+    strcpy(enterMessage, VISITOR_MESSAGE);
+    strcat(enterMessage, " ");
+    strcat(enterMessage, ENTER_REQUEST);
 
+    for (;;) {
+        // Write hello string to buffer
+        strcpy(buffer, enterMessage);
+
+        if (sendto(client_socket, (const char *)buffer, strlen(buffer), 0,
+                   (const struct sockaddr *)&serv_address, sizeof(serv_address)) < 0) {
+            printError("Sendto failed");
+        }
+
+        printf("Request sent.\n");
+
+        // Clear buffer
+        memset(buffer, 0, MAX_RESPONSE_SIZE);
+
+        // Receive welcome message from server
+        socklen_t serv_address_len = sizeof(serv_address);
+        if ((valread = recvfrom(client_socket, (char *)buffer, MAX_RESPONSE_SIZE, 0,
+                                (struct sockaddr *)&serv_address, &serv_address_len)) < 0) {
+            printError("Recvfrom failed");
+        }
+
+        printf("Resived: %s\n", buffer);
+
+        if (strcmp(buffer, ENTER_RESPONSE) == 0) {
+            printf("Entering the gallery.\n");
+            break;
+        }
+    }
+
+    int picture = getNextRandomPicture();
+    while (picture != -1) {
+        char picture_request[MAX_RESPONSE_SIZE] = {0};
+        strcpy(picture_request, VISITOR_MESSAGE);
+        // Add picture number to the request
+        char picture_number[2];
+        sprintf(picture_number, "%d", picture);
+        strcat(picture_request, " ");
+        strcat(picture_request, ENTER_REQUEST);
+        strcat(picture_request, " ");
+        strcat(picture_request, picture_number);
+
+        for (;;) {
+
+            // Write picture request to buffer
+            strcpy(buffer, picture_request);
+
+            if (sendto(client_socket, (const char *)buffer, strlen(buffer), 0,
+                       (const struct sockaddr *)&serv_address, sizeof(serv_address)) < 0) {
+                printError("Sendto failed");
+            }
+
+            printf("Request for picture %d sent.\n", picture + 1);
+
+            // Clear buffer
+            memset(buffer, 0, MAX_RESPONSE_SIZE);
+
+            // Receive message from server
+            socklen_t serv_address_len = sizeof(serv_address);
+            if ((valread = recvfrom(client_socket, (char *)buffer, MAX_RESPONSE_SIZE, 0,
+                                    (struct sockaddr *)&serv_address, &serv_address_len)) < 0) {
+                printError("Recvfrom failed");
+            }
+
+            if (strcmp(buffer, ENTER_RESPONSE) == 0) {
+                printf("Entering picture %d.\n", picture + 1);
+                sleep(5);
+
+                // Create exit message fromm VISITOR_MESSAGE and EXIT_REQUEST
+                char exitMessage[MAX_RESPONSE_SIZE] = {0};
+                strcpy(exitMessage, VISITOR_MESSAGE);
+                strcat(exitMessage, " ");
+                strcat(exitMessage, EXIT_REQUEST);
+                strcat(exitMessage, " ");
+                strcat(exitMessage, picture_number);
+
+                memset(buffer, 0, MAX_RESPONSE_SIZE);
+                strcpy(buffer, exitMessage);
+                if (sendto(client_socket, (const char *)buffer, strlen(buffer), 0,
+                           (const struct sockaddr *)&serv_address, sizeof(serv_address)) < 0) {
+                    printError("Sendto failed");
+                }
+                break;
+            }
+        }
+
+        picture = getNextRandomPicture();
+    }
+
+    // Create exit message fromm VISITOR_MESSAGE and EXIT_REQUEST
+    char exitMessage[MAX_RESPONSE_SIZE] = {0};
+    strcpy(exitMessage, VISITOR_MESSAGE);
+    strcat(exitMessage, " ");
+    strcat(exitMessage, EXIT_REQUEST);
+
+    strcpy(buffer, exitMessage);
     if (sendto(client_socket, (const char *)buffer, strlen(buffer), 0,
                (const struct sockaddr *)&serv_address, sizeof(serv_address)) < 0) {
         printError("Sendto failed");
     }
-
-    printf("Hello message sent.\n");
-
-    // Receive welcome message from server
-    socklen_t serv_address_len = sizeof(serv_address);
-    if ((valread = recvfrom(client_socket, (char *)buffer, MAX_RESPONSE_SIZE, 0,
-                            (struct sockaddr *)&serv_address, &serv_address_len)) < 0) {
-        printError("Recvfrom failed");
-    }
-    buffer[valread] = '\0';
-    printf("%s\n", buffer);
 
     printf("Exiting gallery.\n");
 
