@@ -28,6 +28,12 @@ bool isAllPicturesVisited() {
     return true;
 }
 
+/**
+ * Returns a random picture number that has not been visited yet.
+ * If all pictures have been visited, returns -1.
+ *
+ * @return int - the next random picture number or -1 if all pictures have been visited
+ */
 int getNextRandomPicture() {
     if (isAllPicturesVisited()) {
         return -1;

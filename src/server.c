@@ -20,10 +20,18 @@
 int server_fd;
 int gallery[NUMBER_OF_PICTURES] = {0}, visitors = 0;
 
+/**
+ * @brief Closes the server connection.
+ */
 void closeConnection() {
     close(server_fd);
 }
 
+/**
+ * @brief Handles the SIGINT signal.
+ *
+ * @param sig The signal number.
+ */
 void handleSigInt(int sig) {
     if (sig != SIGINT) {
         return;
@@ -33,6 +41,15 @@ void handleSigInt(int sig) {
     exit(EXIT_SUCCESS);
 }
 
+/**
+ * @brief Generates a string containing information about the gallery and its visitors.
+ *
+ * This function generates a string containing information about the number of visitors in the gallery
+ * and the number of visitors for each picture in the gallery. The string is stored in the provided
+ * bufferString parameter.
+ *
+ * @param bufferString The buffer to store the generated string.
+ */
 void galleryInfo(char *bufferString) {
     memset(bufferString, 0, sizeof(bufferString));
     char buffer[1024] = {0};
@@ -46,6 +63,14 @@ void galleryInfo(char *bufferString) {
     }
 }
 
+/**
+ * @brief The main function.
+ *
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ *
+ * @return 0 on success, -1 on failure.
+ */
 int main(int argc, char *argv[]) {
     (void)signal(SIGINT, handleSigInt);
 
